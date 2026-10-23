@@ -204,3 +204,78 @@ A continuación se presenta la especificación técnica de las tablas solicitada
   2. **Incompatibilidad de guardar el lote en la cabecera o a nivel producto:** Un cliente puede comprar 3 cajas de un medicamento y, bajo el método FEFO, 1 caja puede provenir de un lote que vence el próximo mes y las otras 2 cajas de un lote que vence el próximo año. Por ende, la vinculación del lote no puede estar en la cabecera de la venta ni en la tabla `products`; debe residir estrictamente a nivel de cada renglón de despacho (`sale_details.lot_id` o `sale_lot_details`).
   3. **Consistencia de inventarios:** Permite auditar exactamente qué lote fue rebajado físicamente durante la transacción, asegurando que el saldo en el sistema refleje la realidad física de la gaveta de medicamentos.
 
+---
+
+## 6. Matriz de seguridad y control de acceso
+
+### Matriz Rol × Módulo × Acción
+
+La siguiente matriz define los permisos asignados a los 4 roles del sistema (`admin`, `regente`, `cajero` y `auxiliar-bodega`) utilizando la infraestructura de **Spatie Laravel-Permission**:
+
+| Módulo | Acción / Permiso | Admin (Dueño) | Regente de Farmacia | Cajero | Auxiliar de Bodega |
+|---|---|:---:|:---:|:---:|:---:|
+| **Usuarios** | `usuarios.ver` |  SÍ |  NO |  NO |  NO |
+| | `usuarios.crear` |  SÍ |  NO |  NO |  NO |
+| | `usuarios.editar` |  SÍ |  NO |  NO |  NO |
+| | `usuarios.eliminar` |  SÍ |  NO |  NO |  NO |
+| **Roles y Permisos** | `roles.ver` |  SÍ |  NO |  NO |  NO |
+| | `roles.editar` |  SÍ |  NO |  NO |  NO |
+| **Productos** | `productos.ver` |  SÍ |  SÍ |  SÍ |  SÍ |
+| | `productos.crear` |  SÍ |  NO |  NO |  NO |
+| | `productos.editar` |  SÍ |  NO |  NO |  NO |
+| | `productos.eliminar` |  SÍ |  NO |  NO |  NO |
+| **Lotes** | `lotes.ver` |  SÍ |  SÍ |  NO |  SÍ |
+| | `lotes.crear` |  NO |  SÍ |  NO |  NO |
+| | `lotes.editar` |  NO |  SÍ |  NO |  NO |
+| | `lotes.eliminar` |  NO |  NO |  NO |  NO |
+| | `recibir-lotes` *(acción propia)* | ** NO** | ** SÍ** |  NO | ** SÍ** |
+| **Proveedores** | `proveedores.ver` |  SÍ |  NO |  NO |  NO |
+| | `proveedores.crear` |  SÍ |  NO |  NO |  NO |
+| | `proveedores.editar` |  SÍ |  NO |  NO |  NO |
+| | `proveedores.eliminar` |  SÍ |  NO |  NO |  NO |
+| **Compras** | `compras.ver` |  SÍ |  SÍ |  NO |  SÍ |
+| | `compras.crear` | ** SÍ** | ** NO** |  NO | ** NO** |
+| | `compras.editar` |  SÍ |  NO |  NO |  NO |
+| | `compras.eliminar` |  SÍ |  NO |  NO |  NO |
+| | `compras.aprobar` |  SÍ |  NO |  NO |  NO |
+| **Ventas** | `ventas.ver` |  SÍ |  SÍ |  SÍ |  NO |
+| | `ventas.crear` |  NO |  NO |  SÍ |  NO |
+| | `ventas.cobrar` |  NO |  NO |  SÍ |  NO |
+| | `ventas.anular` |  SÍ |  NO |  NO |  NO |
+| | `dispensar-control-especial` *(acción propia)* |  NO | ** SÍ** | ** NO** |  NO |
+| **Inventario** | `inventario.ver` |  SÍ |  SÍ |  SÍ |  SÍ |
+| | `inventario.ajustar` |  SÍ |  NO |  NO |  NO |
+| **Reportes / KPIs**| `reportes.ver` |  SÍ |  SÍ |  NO |  NO |
+
+---
+
+### Explicación de la segregación de funciones (quien compra no recibe)
+
+La regla de **segregación de funciones** es un pilar fundamental del control interno y la auditoría operativa. En la Droguería Vida Sana:
+
+1. **Riesgo mitigado:** Si la misma persona que crea y autoriza una orden de compra tuviera la facultad de registrar la recepción de mercancía y la creación de lotes en bodega, podría:
+   - Registrar compras ficticias a proveedores coludidos o inexistentes y confirmar recepciones simuladas para desviar fondos de la droguería.
+   - Encubrir faltantes físicos o medicamentos defectuosos recibidos sin que nadie lo detecte.
+2. **Implementación en la matriz:**
+   - El **administrador (dueño)** ostenta el permiso de creación y aprobación de compras (`compras.crear`, `compras.aprobar`), pero tiene estrictamente revocado el permiso `recibir-lotes`.
+   - El **regente de farmacia** y el **auxiliar de bodega** ostentan el permiso `recibir-lotes` y `compras.ver` (para cotejar la remisión contra la orden emitida), pero tienen estrictamente bloqueado el permiso `compras.crear`.
+3. **Mecanismo de control:** Cuando el camión de Distribuidora Farmacéutica del Valle arriba a la droguería, el auxiliar y el regente efectúan la inspección física independiente. Si falta alguna unidad o un lote viene próximo a caducar, se rechaza o se registra la novedad en el sistema sin conflicto de interés.
+
+---
+
+### Caso especial: El regente cubre la caja los sábados
+
+**¿Le asignaría un segundo rol o un permiso directo? ¿Por qué? ¿Qué rol elegiría al iniciar sesión?**
+
+1. **¿Segundo rol o permiso directo?**
+   **Se le debe asignar un SEGUNDO ROL (`cajero`)** mediante la relación de Spatie `$user->assignRole('cajero')`, y **NUNCA un permiso directo individual**.
+
+2. **¿Por qué? (Justificación técnica):**
+   - **Mantenibilidad y principio RBAC:** La administración de permisos directos a usuarios individuales degenera en degradación de seguridad (*permission creep*). Al asignar el rol `cajero`, los permisos se gestionan de forma centralizada y uniforme. Si las políticas de caja cambian en el futuro, se actualiza el rol una sola vez y no usuario por usuario.
+   - **Naturaleza del cargo:** La labor en caja no es una función propia del regente; es una función temporal y operativa.
+   - **Principio de menor privilegio:** Evita que el regente mantenga permisos comerciales innecesarios de lunes a viernes en su rol técnico.
+
+3. **¿Qué rol elegiría al iniciar sesión?**
+   Al iniciar sesión el sábado para atender el mostrador, el sistema debe presentar un selector de contexto de perfil activo y el usuario **debe seleccionar el rol de `cajero`**.
+   - **Justificación:** Al operar bajo el rol de `cajero`, sus acciones en el sistema quedan auditadas en los logs como operaciones de caja (apertura de turno, cobro de facturas, arqueo de caja). Si durante su turno como cajero llega una prescripción de **medicamento de control especial**, el sistema solicitará una confirmación o elevación temporal con su credencial técnica de Regente para firmar la dispensación, garantizando una separación inalterable entre la atención comercial y la responsabilidad sanitaria legal.
+
