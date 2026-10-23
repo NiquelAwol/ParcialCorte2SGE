@@ -3,6 +3,7 @@
 ### Asignatura: Software de Gestión Empresarial (SGE)
 **Docente:** Seminario Desarrollo de Aplicaciones Web en Laravel con Enfoque RAD  
 **Estudiante:** Andrés Felipe Mejía ([@NiquelAwol](https://github.com/NiquelAwol))  
+Miguel Angel Ramirez ([@MiguelAngelRamirezGutierrez](https://github.com/MiguelAngelRamirezGutierrez))
 **Fecha:** Octubre 2026  
 
 ---
