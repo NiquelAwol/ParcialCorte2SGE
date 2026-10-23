@@ -279,3 +279,34 @@ La regla de **segregación de funciones** es un pilar fundamental del control in
    Al iniciar sesión el sábado para atender el mostrador, el sistema debe presentar un selector de contexto de perfil activo y el usuario **debe seleccionar el rol de `cajero`**.
    - **Justificación:** Al operar bajo el rol de `cajero`, sus acciones en el sistema quedan auditadas en los logs como operaciones de caja (apertura de turno, cobro de facturas, arqueo de caja). Si durante su turno como cajero llega una prescripción de **medicamento de control especial**, el sistema solicitará una confirmación o elevación temporal con su credencial técnica de Regente para firmar la dispensación, garantizando una separación inalterable entre la atención comercial y la responsabilidad sanitaria legal.
 
+---
+
+## 7. Evidencias visuales de implementación y ejecución
+
+A continuación se integran las evidencias gráficas generadas y almacenadas en el repositorio:
+
+### Diagrama Entidad-Relación (DER)
+![Diagrama Entidad Relación Droguería](er_drogueria.png)
+
+### 1. Estructura de la tabla `lots` en MySQL (`DESCRIBE lots;` e Índices)
+![Estructura de la tabla lots](capturas/01_describe_lots_mysql.png)
+
+### 2. Código de los Modelos Eloquent (`Lot.php` y `Product.php`)
+![Código de los Modelos](capturas/02_codigo_modelo_lot.png)
+
+### 3. Código del Seeder de Roles y Permisos (`DrogueriaRolesSeeder.php`)
+![Código del Seeder de Seguridad](capturas/03_codigo_seeder_roles.png)
+
+### 4. Código del Servicio Transaccional FEFO (`DispensingService.php`)
+![Código del Servicio DispensingService](capturas/04_codigo_servicio_dispense.png)
+
+### 5. Prueba en Tinker: Creación de 3 lotes y estado inicial
+![Tinker Estado Inicial](capturas/05_tinker_antes_despacho.png)
+
+### 6. Prueba en Tinker: Despacho de 8 unidades aplicando regla FEFO
+![Tinker Despacho FEFO](capturas/06_tinker_despues_despacho.png)
+
+### 7. Prueba en Tinker: Captura de excepción por stock no vencido insuficiente
+![Tinker Validación Stock Insuficiente](capturas/07_tinker_error_stock_insuficiente.png)
+
+
