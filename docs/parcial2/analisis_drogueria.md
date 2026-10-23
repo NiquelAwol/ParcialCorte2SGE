@@ -133,3 +133,74 @@ Para la toma de decisiones estratégicas del dueño de la Droguería Vida Sana, 
 - **Fórmula de cálculo:**
   $$\% \text{OTIF} = \left( \frac{\text{Órdenes de Compra recibidas a tiempo y completas}}{\text{Total de Órdenes de Compra emitidas}} \right) \times 100$$
 - **Utilidad para el dueño:** Identifica si los quiebres de stock en la droguería son causados por retrasos del proveedor, facilitando negociaciones o cambio de distribuidores farmacéuticos.
+
+---
+
+## 5. Diseño del modelo de datos
+
+### Diagrama Entidad-Relación (DER)
+
+A continuación se referencia el diagrama entidad-relación generado con todas las entidades mínimas requeridas, atributos, claves primarias (PK), foráneas (FK), índices únicos y cardinalidades:
+
+![Diagrama Entidad-Relación](er_drogueria.png)
+
+### Diccionario de datos
+
+A continuación se presenta la especificación técnica de las tablas solicitadas: `lots`, `purchase_details` y `sale_details`.
+
+#### Tabla: `lots` (Gestión de Lotes y Fechas de Vencimiento)
+
+| Campo | Tipo de Dato | Nulo | Descripción | Restricciones / Índices |
+|---|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | NO | Clave primaria autoincremental del lote. | `PRIMARY KEY`, `AUTO_INCREMENT` |
+| `product_id` | `BIGINT UNSIGNED` | NO | Clave foránea que referencia al producto/medicamento. | `FOREIGN KEY` referencias `products(id)` `ON DELETE CASCADE` |
+| `lot_number` | `VARCHAR(255)` | NO | Código alfanumérico del lote asignado por el laboratorio fabricante. | Not Null |
+| `expiration_date` | `DATE` | NO | Fecha límite de caducidad o vencimiento sanitario del lote. | Not Null |
+| `quantity` | `INT` | NO | Cantidad de unidades físicas vigentes y disponibles en este lote. | `DEFAULT 0`, `CHECK (quantity >= 0)` |
+| `created_at` | `TIMESTAMP` | SÍ | Fecha y hora de creación del registro. | Nullable |
+| `updated_at` | `TIMESTAMP` | SÍ | Fecha y hora de la última modificación del registro. | Nullable |
+| **Índice único:** | `UNIQUE KEY` | - | Evita duplicar el mismo número de lote para un producto específico. | `UNIQUE (product_id, lot_number)` |
+
+#### Tabla: `purchase_details` (Líneas de Detalle de Órdenes de Compra)
+
+| Campo | Tipo de Dato | Nulo | Descripción | Restricciones / Índices |
+|---|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | NO | Clave primaria de la línea de detalle de compra. | `PRIMARY KEY`, `AUTO_INCREMENT` |
+| `purchase_id` | `BIGINT UNSIGNED` | NO | Clave foránea que referencia a la cabecera de la orden de compra. | `FOREIGN KEY` referencias `purchases(id)` `ON DELETE CASCADE` |
+| `product_id` | `BIGINT UNSIGNED` | NO | Clave foránea del medicamento pedido al distribuidor. | `FOREIGN KEY` referencias `products(id)` |
+| `quantity_ordered` | `INT` | NO | Número de unidades pactadas en la orden de compra. | `CHECK (quantity_ordered > 0)` |
+| `quantity_received` | `INT` | NO | Número de unidades efectivamente recibidas en bodega. | `DEFAULT 0`, `CHECK (quantity_received >= 0)` |
+| `unit_price` | `DECIMAL(12,2)` | NO | Precio de compra unitario convenido con el distribuidor. | `CHECK (unit_price >= 0)` |
+| `subtotal` | `DECIMAL(12,2)` | NO | Importe de la línea (`quantity_ordered * unit_price`). | `CHECK (subtotal >= 0)` |
+| `created_at` | `TIMESTAMP` | SÍ | Fecha y hora de creación del registro. | Nullable |
+| `updated_at` | `TIMESTAMP` | SÍ | Fecha y hora de modificación. | Nullable |
+
+#### Tabla: `sale_details` (Líneas de Detalle de Venta y Dispensación)
+
+| Campo | Tipo de Dato | Nulo | Descripción | Restricciones / Índices |
+|---|---|---|---|---|
+| `id` | `BIGINT UNSIGNED` | NO | Clave primaria de la línea de venta. | `PRIMARY KEY`, `AUTO_INCREMENT` |
+| `sale_id` | `BIGINT UNSIGNED` | NO | Clave foránea que referencia a la cabecera de la venta/factura. | `FOREIGN KEY` referencias `sales(id)` `ON DELETE CASCADE` |
+| `product_id` | `BIGINT UNSIGNED` | NO | Clave foránea del medicamento dispensado. | `FOREIGN KEY` referencias `products(id)` |
+| `lot_id` | `BIGINT UNSIGNED` | NO | Clave foránea del lote específico del cual se extrajeron las unidades. | `FOREIGN KEY` referencias `lots(id)` |
+| `quantity` | `INT` | NO | Cantidad de unidades vendidas y descargadas de dicho lote. | `CHECK (quantity > 0)` |
+| `unit_price` | `DECIMAL(12,2)` | NO | Precio de venta unitario al público en el momento de la venta. | `CHECK (unit_price >= 0)` |
+| `discount` | `DECIMAL(12,2)` | NO | Descuento aplicado a la línea en la venta. | `DEFAULT 0.00` |
+| `subtotal` | `DECIMAL(12,2)` | NO | Importe neto de la línea (`(quantity * unit_price) - discount`). | `CHECK (subtotal >= 0)` |
+| `created_at` | `TIMESTAMP` | SÍ | Fecha y hora de creación. | Nullable |
+| `updated_at` | `TIMESTAMP` | SÍ | Fecha y hora de modificación. | Nullable |
+
+---
+
+### Pregunta de Arquitectura y Trazabilidad
+
+**¿En qué tabla se guarda de qué lote salió cada unidad vendida? Justificar.**
+
+- **Respuesta:**
+  Se guarda en la tabla **`sale_details`** mediante la clave foránea **`lot_id`** (o en una tabla normalizada intermedia de trazabilidad de despachos `sale_lot_details` vinculada a cada línea de venta).
+
+- **Justificación técnica y sanitaria:**
+  1. **Exigencia regulatoria y farmacovigilancia (INVIMA):** La legislación farmacéutica en Colombia exige la trazabilidad bidireccional inmediata. Si un laboratorio fabricante emite una alerta sanitaria o retiro de mercado (*recall*) por contaminación o falla de calidad en un lote determinado, la droguería debe ser capaz de identificar de inmediato a través del sistema a qué clientes se les dispensó dicho lote, en qué fechas y bajo cuáles facturas. De igual manera, ante un evento adverso de un paciente, la droguería debe responder con el lote y vencimiento del producto suministrado.
+  2. **Incompatibilidad de guardar el lote en la cabecera o a nivel producto:** Un cliente puede comprar 3 cajas de un medicamento y, bajo el método FEFO, 1 caja puede provenir de un lote que vence el próximo mes y las otras 2 cajas de un lote que vence el próximo año. Por ende, la vinculación del lote no puede estar en la cabecera de la venta ni en la tabla `products`; debe residir estrictamente a nivel de cada renglón de despacho (`sale_details.lot_id` o `sale_lot_details`).
+  3. **Consistencia de inventarios:** Permite auditar exactamente qué lote fue rebajado físicamente durante la transacción, asegurando que el saldo en el sistema refleje la realidad física de la gaveta de medicamentos.
+
