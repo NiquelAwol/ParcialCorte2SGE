@@ -1,4 +1,8 @@
 # Análisis de la Droguería Vida Sana
+**Asignatura:** Software de Gestión Empresarial (SGE) — COTECNOVA 2026  
+**Integrantes:** Andrés Felipe Mejía &bull; Miguel Ángel Ramírez  
+
+---
 
 ## 1. Flujo integrado
 
@@ -136,15 +140,15 @@ Para la toma de decisiones estratégicas del dueño de la Droguería Vida Sana, 
 
 ---
 
-## 5. Diseño del modelo de datos
+# Punto 2: Diseño del modelo de datos (Diccionario y Trazabilidad)
 
-### Diagrama Entidad-Relación (DER)
+### 2.1 Diagrama Entidad-Relación (DER)
 
-A continuación se referencia el diagrama entidad-relación generado con todas las entidades mínimas requeridas, atributos, claves primarias (PK), foráneas (FK), índices únicos y cardinalidades:
+El diagrama completo con cardinalidades y subsistemas se encuentra en [er_drogueria.png](er_drogueria.png):
 
 ![Diagrama Entidad-Relación](er_drogueria.png)
 
-### Diccionario de datos
+### 2.2 Diccionario de datos
 
 A continuación se presenta la especificación técnica de las tablas solicitadas: `lots`, `purchase_details` y `sale_details`.
 
@@ -206,9 +210,9 @@ A continuación se presenta la especificación técnica de las tablas solicitada
 
 ---
 
-## 6. Matriz de seguridad y control de acceso
+# Punto 3: Matriz de seguridad (Control de Acceso y Segregación)
 
-### Matriz Rol × Módulo × Acción
+### 3.1 Matriz Rol × Módulo × Acción
 
 La siguiente matriz define los permisos asignados a los 4 roles del sistema (`admin`, `regente`, `cajero` y `auxiliar-bodega`) utilizando la infraestructura de **Spatie Laravel-Permission**:
 
@@ -281,7 +285,7 @@ La regla de **segregación de funciones** es un pilar fundamental del control in
 
 ---
 
-## 7. Evidencias visuales de implementación y ejecución
+# Punto 4: Evidencias de implementación y ejecución (Capturas)
 
 A continuación se integran las evidencias gráficas generadas y almacenadas en el repositorio:
 
